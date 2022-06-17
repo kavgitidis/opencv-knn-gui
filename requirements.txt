@@ -1,0 +1,8 @@
+imutils==0.5.4
+matplotlib==3.5.1
+numpy==1.21.6
+opencv_contrib_python==3.4.2.16
+Pillow==9.1.1
+pymongo==4.1.1
+PySimpleGUI==4.60.1
+scipy==1.7.3
