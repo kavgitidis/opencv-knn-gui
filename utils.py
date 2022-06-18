@@ -12,9 +12,6 @@ from scipy.spatial import distance
 
 class MediaDB:
     def __init__(self, client: str, database: str, collection: str):
-        # cluster = MongoClient('mongodb://localhost:27017/')
-        # db = cluster["adb"]
-        # collection = db["adb"]
         self.cluster = MongoClient(client)
         self.db = self.cluster[database]
         self.collection = self.db[collection]
@@ -47,7 +44,8 @@ class MediaDB:
                     "SIFTKeypoints": i.encode_keypoints(keypoints_sift),
                     "SURFDescriptors": descriptors_surf.tolist(),
                     "SURFKeypoints": i.encode_keypoints(keypoints_surf),
-                    "ORBDescriptors": descriptors_orb.tolist(), "ORBKeypoints": i.encode_keypoints(keypoints_orb),
+                    "ORBDescriptors": descriptors_orb.tolist(),
+                    "ORBKeypoints": i.encode_keypoints(keypoints_orb),
                     "HISTOGRAMDescriptors": descriptors_hist.tolist(), }
             try:
                 self.collection.insert_one(post)
@@ -160,7 +158,8 @@ class ImageUtils:
                 for img in db.collection.find({'ImagePath': {'$ne': f'{query_img}'}}):
                     good_matches = 0
 
-                    des = np.asarray(img[f'{algorithm}Descriptors'], dtype=dtype_)
+                    des = np.asarray(
+                        img[f'{algorithm}Descriptors'], dtype=dtype_)
 
                     search_params = dict(checks=50)  # or pass empty dictionary
 
@@ -178,8 +177,10 @@ class ImageUtils:
                                  'Keypoints': img[f'{algorithm}Keypoints'], "Matches": matches,
                                  "Precision": precision,
                                  "Count": good_matches})
-                sorted_ = sorted(knns, key=lambda x: x['Count'], reverse=True)[:k]
-                average_precision = sum([i['Precision'] for i in sorted_]) / len(sorted_)
+                sorted_ = sorted(
+                    knns, key=lambda x: x['Count'], reverse=True)[:k]
+                average_precision = sum([i['Precision']
+                                        for i in sorted_]) / len(sorted_)
                 return average_precision, sorted(knns, key=lambda x: x['Count'], reverse=True)[:k]
             elif method == 'BF':
                 if algorithm == 'SURF' or algorithm == 'SIFT' or algorithm == 'ORB':
@@ -189,7 +190,8 @@ class ImageUtils:
                     for img in db.collection.find({'ImagePath': {'$ne': f'{query_img}'}}):
                         good_matches = 0
 
-                        des = np.asarray(img[f'{algorithm}Descriptors'], dtype=dtype_)
+                        des = np.asarray(
+                            img[f'{algorithm}Descriptors'], dtype=dtype_)
                         bf = cv2.BFMatcher(dist_metric)  # crossCheck=True
                         matches = bf.knnMatch(descriptors, des, k=2)
                         for i, pair in enumerate(matches):
@@ -204,19 +206,24 @@ class ImageUtils:
                                      'Keypoints': img[f'{algorithm}Keypoints'], "Matches": matches,
                                      "Precision": precision,
                                      "Count": good_matches})
-                    sorted_ = sorted(knns, key=lambda x: x['Precision'], reverse=True)[:k]
-                    average_precision = sum([i['Precision'] for i in sorted_]) / len(sorted_)
+                    sorted_ = sorted(
+                        knns, key=lambda x: x['Precision'], reverse=True)[:k]
+                    average_precision = sum([i['Precision']
+                                            for i in sorted_]) / len(sorted_)
                     return average_precision, sorted_
         elif algorithm == 'HISTOGRAM':
             for img in db.collection.find(({'ImagePath': {'$ne': f'{query_img}'}})):
                 hist1 = self.histogram(self.read_image(query_img))
-                hist2 = np.asarray(img[f'{algorithm}Descriptors'], dtype=np.float32)
+                hist2 = np.asarray(
+                    img[f'{algorithm}Descriptors'], dtype=np.float32)
                 d = abs(getattr(distance, dist)(hist1, hist2))
                 knns.append(
                     {'ImageName': img['ImageName'], 'ImagePath': img['ImagePath'], "Distance": d,
                      "Precision": (1 - d) * 100})
-            sorted_ = sorted(knns, key=lambda x: x['Precision'], reverse=True)[:k]
-            average_precision = sum([i['Precision'] for i in sorted_]) / len(sorted_)
+            sorted_ = sorted(
+                knns, key=lambda x: x['Precision'], reverse=True)[:k]
+            average_precision = sum([i['Precision']
+                                    for i in sorted_]) / len(sorted_)
             return average_precision, sorted_
 
     def encode_keypoints(self, keypoints):
@@ -306,6 +313,7 @@ class ImageUtils:
                                singlePointColor=(255, 0, 0),
                                matchesMask=matches_mask,
                                flags=0)
-            img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, matches, None, **draw_params)
+            img3 = cv2.drawMatchesKnn(
+                img1, kp1, img2, kp2, matches, None, **draw_params)
 
         return img3

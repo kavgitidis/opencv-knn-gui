@@ -9,13 +9,14 @@ import PySimpleGUI as psg
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
-from utils import ImageUtils
-from utils import MediaDB
+from utils import ImageUtils, MediaDB
 
 root = tk.Tk()
 screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
 root.destroy()
-width, height = 300, 300  # Scale image
+# width, height = 300, 300  # Scale image
+width = int( screen_width / 8)
+height = width
 psg.theme('Material2')
 file_types = (("PNG (*.png)", "*.png"),
               ("JPEG (*.jpg)", "*.jpg"),
@@ -37,7 +38,8 @@ file_options = [
     ],
     [
         psg.Text("Mongo Cluster"),
-        psg.Input(size=(25, 1), key="-CLUSTER-", default_text="mongodb://localhost:27017/"),
+        psg.Input(size=(25, 1), key="-CLUSTER-",
+                  default_text="mongodb://localhost:27017/"),
         psg.Text("Mongo Database"),
         psg.Input(size=(10, 1), key="-DATABASE-", default_text='adb'),
         psg.Text("Mongo Collection"),
@@ -50,13 +52,17 @@ file_options = [
     ],
     [
         psg.Text("K value"),
-        psg.Combo([i + 1 for i in range(20)], size=(2, 5), key='k', default_value=[5]),
+        psg.Combo([i + 1 for i in range(20)], size=(2, 5),
+                  key='k', default_value=[5]),
         psg.Text("Method for KNN"),
-        psg.Combo(['FLANN', "BF"], size=(8, 2), key='method', default_value=['BF']),
+        psg.Combo(['FLANN', "BF"], size=(8, 2),
+                  key='method', default_value=['BF']),
         psg.Text("Algorithm"),
-        psg.Combo(['SIFT', 'SURF', 'ORB', 'HISTOGRAM'], size=(12, 4), key='algorithm', default_value=['SIFT']),
+        psg.Combo(['SIFT', 'SURF', 'ORB', 'HISTOGRAM'], size=(
+            12, 4), key='algorithm', default_value=['SIFT']),
         psg.Text("RATIO"),
-        psg.Combo([round(i, 2) for i in np.arange(.9, 0, -.1)], size=(3, 6), key='ratio', default_value=[0.7]),
+        psg.Combo([round(i, 2) for i in np.arange(.9, 0, -.1)],
+                  size=(3, 6), key='ratio', default_value=[0.7]),
         psg.Text("Distance for\nHistogram"),
         psg.Combo(['euclidean', 'minkowski', 'jaccard', 'cosine', 'cityblock', 'dice', 'chebyshev', 'kulsinski'],
                   size=(10, 8), key='distance', default_value=['minkowski']),
@@ -76,11 +82,16 @@ knn_results = [[psg.Image(key=f"-IMAGE{int(i)}-"),
                 psg.Image(key=f"-IMAGE{int(i + 3)}-"),
                 psg.Image(key=f"-IMAGE{int(i + 4)}-"), ]
                if i == 1 or i % 5 == 1 else [
-    psg.Text(key=f"-TEXT{int(i - 2.5)}-", size=(40, 2), justification='center', visible=False),
-    psg.Text(key=f"-TEXT{int(i - 1.5)}-", size=(38, 2), justification='center', visible=False),
-    psg.Text(key=f"-TEXT{int(i - .5)}-", size=(38, 2), justification='center', visible=False),
-    psg.Text(key=f"-TEXT{int(i + .5)}-", size=(38, 2), justification='center', visible=False),
-    psg.Text(key=f"-TEXT{int(i + 1.5)}-", size=(40, 2), justification='center', visible=False),
+    psg.Text(key=f"-TEXT{int(i - 2.5)}-", size=(40, 2),
+             justification='center', visible=False),
+    psg.Text(key=f"-TEXT{int(i - 1.5)}-", size=(38, 2),
+             justification='center', visible=False),
+    psg.Text(key=f"-TEXT{int(i - .5)}-", size=(38, 2),
+             justification='center', visible=False),
+    psg.Text(key=f"-TEXT{int(i + .5)}-", size=(38, 2),
+             justification='center', visible=False),
+    psg.Text(key=f"-TEXT{int(i + 1.5)}-", size=(40, 2),
+             justification='center', visible=False),
 ] for i in np.arange(1, 21, 2.5)]
 
 
@@ -102,7 +113,8 @@ def wrapper(file, method, algorithm, k, db, dist, ratio, bfdist, gui_queue):
 
     """
     img_utils = ImageUtils()
-    average_precision, knns = img_utils.get_knn(file, method, algorithm, k, db, dist, ratio, bfdist)
+    average_precision, knns = img_utils.get_knn(
+        file, method, algorithm, k, db, dist, ratio, bfdist)
     gui_queue.put((average_precision, knns))
     return
 
@@ -126,41 +138,49 @@ def main():
             break
         elif event == "Browse":
             window['-STATUS-'].update(visible=False)
-            path = psg.popup_get_file("", no_window=True, file_types=file_types)
+            path = psg.popup_get_file(
+                "", no_window=True, file_types=file_types)
             if path == '':
                 continue
             window['-FILE-'].update(path)
             if not Path(path).is_file():
-                window['-STATUS-'].update('Image file not found!', visible=True)
+                window['-STATUS-'].update('Image file not found!',
+                                          visible=True)
                 continue
             try:
                 image = Image.open(path)
 
             except UnidentifiedImageError:
-                window['-STATUS-'].update("Cannot identify image file!", visible=True)
+                window['-STATUS-'].update("Cannot identify image file!",
+                                          visible=True)
                 continue
             image = image.resize((400, 400))
             bio = io.BytesIO()
             image.save(bio, format="PNG")
             window[f"-IMAGE-"].update(data=bio.getvalue())
         elif event == "Clear DB":
-            db = MediaDB(values["-CLUSTER-"], values["-DATABASE-"], values["-COLLECTION-"])
+            db = MediaDB(values["-CLUSTER-"],
+                         values["-DATABASE-"], values["-COLLECTION-"])
             db.collection.delete_many({})
             window['-STATUS-'].update("Cleared Database.", visible=True)
         elif event == "Add to DB":
             folder_path = psg.popup_get_folder("", no_window=True)
-            db = MediaDB(values["-CLUSTER-"], values["-DATABASE-"], values["-COLLECTION-"])
+            db = MediaDB(values["-CLUSTER-"],
+                         values["-DATABASE-"], values["-COLLECTION-"])
             files = db.put_images_to_db(folder_path)
-            window['-STATUS-'].update(f"Inserted {files} images to Database.", visible=True)
+            window['-STATUS-'].update(
+                f"Inserted {files} images to Database.", visible=True)
         elif event == "Find KNNs":
             flag = True
             for i in range(20):
                 window[f"-IMAGE{i + 1}-"].update(visible=False)
                 window[f"-TEXT{i + 1}-"].update(visible=False)
             window['-STATUS-'].update(visible=False)
-            db = MediaDB(values["-CLUSTER-"], values["-DATABASE-"], values["-COLLECTION-"])
+            db = MediaDB(values["-CLUSTER-"],
+                         values["-DATABASE-"], values["-COLLECTION-"])
             thread_id = threading.Thread(target=wrapper, args=(
-                values["-FILE-"], values["method"], values["algorithm"], int(values["k"]),
+                values["-FILE-"], values["method"], values["algorithm"], int(
+                    values["k"]),
                 db, values['distance'], float(values['ratio']), values['bfdist'], gui_queue), daemon=True)
             thread_id.start()
         elif event == "Draw":
@@ -187,7 +207,8 @@ def main():
                     else:
                         window.Normal()
         try:
-            (average_precision, knns) = gui_queue.get_nowait()  # see if something has been posted to Queue
+            # see if something has been posted to Queue
+            (average_precision, knns) = gui_queue.get_nowait()
         except queue.Empty:  # get_nowait() will get exception when Queue is empty
             knns = None  # nothing in queue so do nothing
         if knns is not None:
@@ -201,12 +222,14 @@ def main():
                     image.save(bio, format="PNG")
                     window[f"-IMAGE{i + 1}-"].update(data=bio.getvalue())
                     window[f"-IMAGE{i + 1}-"].update(visible=True)
-                    window.Element(f"-IMAGE{i + 1}-").set_tooltip(f"{round(img['Precision'], 4)}%")
-                    window[f"-TEXT{i + 1}-"].update(f"{img['ImageName']}\n{round(img['Precision'], 4)}%")
+                    window.Element(
+                        f"-IMAGE{i + 1}-").set_tooltip(f"{round(img['Precision'], 4)}%")
+                    window[f"-TEXT{i + 1}-"].update(
+                        f"{img['ImageName']}\n{round(img['Precision'], 4)}%")
                     window[f"-TEXT{i + 1}-"].update(visible=True)
-                    # window.Element(f"-TEXT{i + 1}-").set_visible(True)
                     window.move(0, 0)
-                    window['-STATUS-'].update(f"Average precision: {round(average_precision, 4)}%", visible=True)
+                    window['-STATUS-'].update(
+                        f"Average precision: {round(average_precision, 4)}%", visible=True)
                     if values["k"] > 16:
                         window.maximize()
                     else:
